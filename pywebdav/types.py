@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
 from typing import Literal, Tuple, Union
 
 from httpx import BasicAuth, DigestAuth, Response
@@ -21,8 +20,21 @@ class DAVException(Exception):
 
 class DAVResponse:
     def __init__(self, response: Response) -> None:
-        self._response = response
+        self._orig = response
+
+    @property
+    def status_code(self) -> int:
+        return self._orig.status_code
+
+    def raise_for_status(self) -> None:
+        try:
+            self._orig.raise_for_status()
+        except Exception as e:
+            raise DAVException()  # TODO: better error displays
 
     def xml(self) -> ET.Element:
         """Parses the response XML content."""
-        return ET.fromstring(self._response.content)
+        return ET.fromstring(self._orig.content)
+
+    def __repr__(self) -> str:
+        return f"<DAVResponse [{self._orig.status_code}]>"
