@@ -3,12 +3,12 @@ from __future__ import annotations
 from types import TracebackType
 
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 
 from ..utils import SyncClient, DEFAULT_HEADERS
 
-from ..types import Auth, Cert, DAVResponse, RequestMethod
+from ..types import Auth, Cert, DAVResponse, RequestMethod, RequestMethodLiteral
 
 
 class SyncWebDAVClient:
@@ -21,6 +21,7 @@ class SyncWebDAVClient:
         self,
         host: str,
         port: int = 0,
+        *,
         scheme: Literal["http", "https"] = "https",
         auth: Optional[Auth] = None,
         cert: Optional[Cert] = None,
@@ -85,9 +86,9 @@ class SyncWebDAVClient:
 
         self.close()
 
-    def _request(
+    def request(
         self,
-        method: RequestMethod,
+        method: Union[RequestMethod, RequestMethodLiteral],
         path: str,
         headers: Optional[dict[str, str]] = None,
         **kwargs: Any,
@@ -99,7 +100,19 @@ class SyncWebDAVClient:
 
             req_headers.update(headers)
 
-        res = self._client.request(method, path, headers=req_headers, **kwargs)
+        if isinstance(method, RequestMethod):
+
+            # allows passing values of the RequestMethod enum
+
+            # this enum is used in the CLI as typer has support for enums
+
+            req_method = method.value
+
+        else:
+
+            req_method = method
+
+        res = self._client.request(req_method, path, headers=req_headers, **kwargs)
 
         return DAVResponse(res)
 
@@ -107,4 +120,12 @@ class SyncWebDAVClient:
         self, path: str, *, body: str, depth: Literal["0", "1", "infinity"] = "1"
     ) -> DAVResponse:
 
-        return self._request("PROPFIND", path, headers={"Depth": depth}, body=body)
+        return self.request("PROPFIND", path, headers={"Depth": depth}, content=body)
+
+    def get(self, path: str, **kwargs: Any) -> DAVResponse:
+
+        return self.request("GET", path, **kwargs)
+
+    def put(self, path: str, **kwargs: Any) -> DAVResponse:
+
+        return self.request("PUT", path, **kwargs)
