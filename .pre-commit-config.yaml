@@ -14,3 +14,8 @@ repos:
         entry: poetry run black .
         language: system
         types: [python]
+    -   id: unasync
+        name: unasync
+        entry: poetry run unasync pywebdav
+        language: system
+        types: [python]
