@@ -1,6 +1,7 @@
 import json
+from http.client import responses
 from pathlib import Path
-from typing import Dict, Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import httpx
 from typer import Exit, Option, Typer, echo
@@ -35,7 +36,9 @@ def request(
     method: RequestMethod,
     url: str,
     headers: Optional[str] = Option(
-        None, help="Headers to pass with the request", show_default=False
+        None,
+        help="Headers to pass with the request. Make sure to properly escape quotes!",
+        show_default=False,
     ),
     username: Optional[str] = Option(
         None, "-u", help="The username to use while authenticating", show_default=False
@@ -75,8 +78,8 @@ def request(
     res = httpx.request(method.value, url, headers=req_headers, data=req_body, auth=auth)  # type: ignore
     # XML can be directly passed as data if passed with the right Content-Type header
     # however httpx has type-hinted body to be of type dict
-
-    echo(f"Status: {res.status_code}\n")
+    status = f"{res.status_code} {responses.get(res.status_code, 'UNKNOWN')}"
+    echo(f"Status: {status}\n")
     echo(res.text)
 
 
