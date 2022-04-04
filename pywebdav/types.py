@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
+from enum import Enum
 from typing import Literal, Tuple, Union
 
 from httpx import BasicAuth, DigestAuth, Response
@@ -10,8 +11,20 @@ Auth = Union[
     Tuple[str, str], BasicAuth, DigestAuth
 ]  # (email, pw) | BasicAuth | DigestAuth
 Cert = Union[str, Tuple[str, str]]  # path-to-cert.pem | ('cert', 'key')
-RequestMethod = Literal["PROPFIND", "GET", "PUT", "DELETE", "MKCOL", "HEAD", "POST"]
+RequestMethodLiteral = Literal[
+    "PROPFIND", "GET", "PUT", "DELETE", "MKCOL", "HEAD", "POST"
+]
 # there are more methods, we'll see how many we can implement in time
+
+
+class RequestMethod(str, Enum):
+    PROPFIND = "PROPFIND"
+    GET = "GET"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    MKDCOL = "MKCOL"
+    HEAD = "HEAD"
+    POST = "POST"
 
 
 class DAVException(Exception):

@@ -1,10 +1,10 @@
 from __future__ import annotations
 from types import TracebackType
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 from ..utils import AsyncClient, DEFAULT_HEADERS
-from ..types import Auth, Cert, DAVResponse, RequestMethod
+from ..types import Auth, Cert, DAVResponse, RequestMethod, RequestMethodLiteral
 
 
 class AsyncWebDAVClient:
@@ -15,6 +15,7 @@ class AsyncWebDAVClient:
         self,
         host: str,
         port: int = 0,
+        *,
         scheme: Literal["http", "https"] = "https",
         auth: Optional[Auth] = None,
         cert: Optional[Cert] = None,
@@ -58,9 +59,9 @@ class AsyncWebDAVClient:
     ) -> None:
         await self.close()
 
-    async def _request(
+    async def request(
         self,
-        method: RequestMethod,
+        method: Union[RequestMethod, RequestMethodLiteral],
         path: str,
         headers: Optional[dict[str, str]] = None,
         **kwargs: Any,
@@ -68,12 +69,28 @@ class AsyncWebDAVClient:
         req_headers = {**DEFAULT_HEADERS}
         if headers is not None:
             req_headers.update(headers)
-        res = await self._client.request(method, path, headers=req_headers, **kwargs)
+
+        if isinstance(method, RequestMethod):
+            # allows passing values of the RequestMethod enum
+            # this enum is used in the CLI as typer has support for enums
+            req_method = method.value
+        else:
+            req_method = method
+
+        res = await self._client.request(
+            req_method, path, headers=req_headers, **kwargs
+        )
         return DAVResponse(res)
 
     async def propfind(
         self, path: str, *, body: str, depth: Literal["0", "1", "infinity"] = "1"
     ) -> DAVResponse:
-        return await self._request(
-            "PROPFIND", path, headers={"Depth": depth}, body=body
+        return await self.request(
+            "PROPFIND", path, headers={"Depth": depth}, content=body
         )
+
+    async def get(self, path: str, **kwargs: Any) -> DAVResponse:
+        return await self.request("GET", path, **kwargs)
+
+    async def put(self, path: str, **kwargs: Any) -> DAVResponse:
+        return await self.request("PUT", path, **kwargs)
