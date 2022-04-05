@@ -33,6 +33,7 @@ class DAVException(Exception):
     """Raised when a WebDAV operation fails."""
 
     def __init__(self, status: int, message: str = "") -> None:
+        self.status_code = status
         super().__init__(
             f"Status: {status}\n{'Message: ' + message if message else ''}"
         )

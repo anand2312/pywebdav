@@ -8,7 +8,7 @@ import httpx
 from typer import Exit, Option, Typer, echo
 
 from .shell_client import ShellDAVClient
-from .types import RequestMethod
+from .types import DAVException, RequestMethod
 from .utils import DEFAULT_HEADERS
 
 
@@ -115,7 +115,13 @@ def shell(
 def _shell_main(**kwargs: Any) -> None:
     """REPL for shell commands"""
     client = ShellDAVClient(**kwargs)
-    cmd_mapping = {"ls": ls_cmd, "cd": cd_cmd, "help": help_cmd}
+    cmd_mapping = {
+        "ls": ls_cmd,
+        "cd": cd_cmd,
+        "download": download_cmd,
+        "upload": upload_cmd,
+        "help": help_cmd,
+    }
     echo(f"pywebdav shell")
     echo(f"Connecting to {client.dav_client.base_url}")
     echo("Type 'help' for a list of commands, and 'exit' to leave the shell.")
@@ -133,37 +139,78 @@ def _shell_main(**kwargs: Any) -> None:
         if cmd_func is None:
             echo(f"Invalid command: {cmd_name}")
             continue
+        try:
+            cmd_func(client, *args)
+        except TypeError as err:
+            echo(err.args[0], err=True)
 
-        cmd_func(client, *args)
         continue
 
 
-def ls_cmd(client: ShellDAVClient, dest: Optional[str] = None) -> None:
-    path = client.cwd if dest is None else dest
+def ls_cmd(client: ShellDAVClient, path: Optional[str] = None) -> None:
+    path = client.cwd if path is None else path
     resources = client.ls(path)
     out = "\n".join([res.basename for res in resources])
     echo(out)
 
 
-def cd_cmd(client: ShellDAVClient, dest: str) -> None:
-    client.cd(dest)
+def download_cmd(client: ShellDAVClient, src: str, destination: str) -> None:
+    try:
+        client.download(src, destination)
+    except DAVException as err:
+        echo(
+            f"Status: {err.status_code} {responses.get(err.status_code, 'UNKNOWN')}",
+            err=True,
+        )
+        return
+    echo(f"File downloaded.")
+
+
+def upload_cmd(client: ShellDAVClient, src: str, destination: str) -> None:
+    try:
+        client.upload(destination, src)
+    except DAVException as err:
+        echo(
+            f"Status: {err.status_code} {responses.get(err.status_code, 'UNKNOWN')}",
+            err=True,
+        )
+        return
+    echo(f"File uploaded.")
+
+
+def cd_cmd(client: ShellDAVClient, destination: str) -> None:
+    client.cd(destination)
 
 
 def help_cmd(_: ShellDAVClient, cmd: Optional[str] = None) -> None:
     cmd_help_mapping = {
         "cd": (
             "Change directory.\n\n"
+            "Syntax: cd <DESTINATION>\n"
             "Arguments:\n"
             "   destination: The destination path [REQUIRED]"
         ),
         "ls": (
             "List files and folders.\n\n"
+            "Syntax: ls <PATH>\n"
             "Arguments:\n"
             "   path: Path to the directory whose files should be listed."
             " If not passed, lists files in current directory."
         ),
-        "upload": (""),
-        "download": (""),
+        "upload": (
+            "Uploads the file located at src_fp to destination.\n\n"
+            "Syntax: upload <SRC_PATH> <DESTINATION>\n"
+            "Arguments:\n"
+            "   src: The location (on your computer) of the file to be uploaded [REQUIRED]\n"
+            "   destination: The location (on the server) to upload the file to [REQUIRED]\n"
+        ),
+        "download": (
+            "Downloads the file located at src_path to destination_path.\n\n"
+            "Syntax: download <SRC> <DESTINATION>\n"
+            "Arguments:\n"
+            "   src: The location (on the server) of the file to be downloaded [REQUIRED]\n"
+            "   destination: The location (on your computer) to download the file to [REQUIRED]"
+        ),
         "exit": "Ends the shell session",
     }
     main_help = (
