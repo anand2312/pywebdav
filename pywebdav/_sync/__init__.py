@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
+from pathlib import Path
 from types import TracebackType
-
 from typing import Any, List, Literal, Optional
+
+from urllib.parse import quote
 
 from .._unasync_compat import SyncClient
 from ..types import Auth, Cert, DAVResponse, RequestMethodLiteral
@@ -85,8 +87,30 @@ class SyncWebDAVClient:
         if extra_headers is not None:
             req_headers.update(extra_headers)
 
-        res = self._client.request(method, path, headers=req_headers, **kwargs)
+        res = self._client.request(method, quote(path), headers=req_headers, **kwargs)
         return DAVResponse(res)
+
+    def move(self, src_path: str, destination_path: str) -> DAVResponse:
+        """Move a file from src_path to destination_path
+
+        Args:
+            src_path: The location of the file to be moved
+            destination_path: The location to which the file should be moved to
+        Returns:
+            DAVResponse
+        """
+        return self._move_or_copy("MOVE", src_path, destination_path)
+
+    def copy(self, src_path: str, destination_path: str) -> DAVResponse:
+        """Copy a file from src_path to destination_path
+
+        Args:
+            src_path: The location of the file to be copied
+            destination_path: The location to which the file should be copied to
+        Returns:
+            DAVResponse
+        """
+        return self._move_or_copy("COPY", src_path, destination_path)
 
     def propfind(
         self,
@@ -101,6 +125,8 @@ class SyncWebDAVClient:
             path: The path to send the request to
             depth: Depth of the listing
             properties: List of properties to request.
+        Returns:
+            DAVResponse
         """
         if not path.endswith("/"):
             path += "/"
@@ -156,3 +182,16 @@ class SyncWebDAVClient:
             unchanged to [`httpx.request`](https://www.python-httpx.org/api/#helper-functions)
         """
         return self.request("PUT", path, content=content, **kwargs)
+
+    def _move_or_copy(
+        self, method: Literal["MOVE", "COPY"], src: str, destination: str
+    ) -> DAVResponse:
+        # inspired by https://github.com/owncloud/pyocclient/blob/fe5c11edc92e1dc80d9683c3a16ec929749a5343/owncloud/owncloud.py#L1869
+        if not destination.endswith("/"):
+            destination += Path(src).name
+
+        if not destination.startswith("/"):
+            destination = "/" + destination
+
+        headers = {"Destination": self.base_url + quote(destination)}
+        return self.request(method, src, headers=headers)
