@@ -118,6 +118,9 @@ def _shell_main(**kwargs: Any) -> None:
     cmd_mapping = {
         "ls": ls_cmd,
         "cd": cd_cmd,
+        "move": move_cmd,
+        "copy": copy_cmd,
+        "rm": delete_cmd,
         "download": download_cmd,
         "upload": upload_cmd,
         "help": help_cmd,
@@ -137,13 +140,17 @@ def _shell_main(**kwargs: Any) -> None:
         cmd_func = cmd_mapping.get(cmd_name)
 
         if cmd_func is None:
-            echo(f"Invalid command: {cmd_name}")
+            echo(f"[ERROR] Invalid command: {cmd_name}")
             continue
         try:
             cmd_func(client, *args)
         except TypeError as err:
             echo(err.args[0], err=True)
-
+        except DAVException as err:
+            echo(
+                f"[ERROR] Status: {err.status_code} {responses.get(err.status_code, 'UNKNOWN')}",
+                err=True,
+            )
         continue
 
 
@@ -154,45 +161,46 @@ def ls_cmd(client: ShellDAVClient, path: Optional[str] = None) -> None:
     echo(out)
 
 
-def download_cmd(client: ShellDAVClient, src: str, destination: str) -> None:
-    try:
-        client.download(src, destination)
-    except DAVException as err:
-        echo(
-            f"Status: {err.status_code} {responses.get(err.status_code, 'UNKNOWN')}",
-            err=True,
-        )
-        return
+def download_cmd(client: ShellDAVClient, src: str, target: str) -> None:
+    client.download(src, target)
     echo(f"File downloaded.")
 
 
-def upload_cmd(client: ShellDAVClient, src: str, destination: str) -> None:
+def move_cmd(client: ShellDAVClient, src: str, target: str) -> None:
+    client.move(src, target)
+    echo(f"File moved")
+
+
+def copy_cmd(client: ShellDAVClient, src: str, target: str) -> None:
+    client.copy(src, target)
+    echo(f"File copied")
+
+
+def delete_cmd(client: ShellDAVClient, path: str) -> None:
+    client.delete(path)
+    echo(f"Deleted")
+
+
+def upload_cmd(client: ShellDAVClient, src: str, target: str) -> None:
     fp = Path(src)
     if not fp.exists():
-        echo(f"File {src} does not exist", err=True)
+        echo(f"[ERROR] File {src} does not exist", err=True)
         return
-    try:
-        client.upload(destination, fp)
-    except DAVException as err:
-        echo(
-            f"Status: {err.status_code} {responses.get(err.status_code, 'UNKNOWN')}",
-            err=True,
-        )
-        return
+    client.upload(fp, target)
     echo(f"File uploaded.")
 
 
-def cd_cmd(client: ShellDAVClient, destination: str) -> None:
-    client.cd(destination)
+def cd_cmd(client: ShellDAVClient, target: str) -> None:
+    client.cd(target)
 
 
 def help_cmd(_: ShellDAVClient, cmd: Optional[str] = None) -> None:
     cmd_help_mapping = {
         "cd": (
             "Change directory.\n\n"
-            "Syntax: cd <DESTINATION>\n"
+            "Syntax: cd <target>\n"
             "Arguments:\n"
-            "   destination: The destination path [REQUIRED]"
+            "   target: The target path [REQUIRED]"
         ),
         "ls": (
             "List files and folders.\n\n"
@@ -201,25 +209,46 @@ def help_cmd(_: ShellDAVClient, cmd: Optional[str] = None) -> None:
             "   path: Path to the directory whose files should be listed."
             " If not passed, lists files in current directory."
         ),
+        "copy": (
+            "Copies the file located at src_path to target.\n\n"
+            "Syntax: copy <SRC_PATH> <TARGET>\n"
+            "Arguments:\n"
+            "   src: The location (on the server) of the file to be copied [REQUIRED]\n"
+            "   target: The location (on the server) to which the file should be copied [REQUIRED]\n"
+        ),
+        "move": (
+            "Moves the file located at src_path to target.\n\n"
+            "Syntax: move <SRC_PATH> <TARGET>\n"
+            "Arguments:\n"
+            "   src: The location (on the server) of the file to be moved [REQUIRED]\n"
+            "   target: The location (on the server) to which the file should be moved [REQUIRED]\n"
+        ),
+        "rm": (
+            "Delete a file or directory.\n\n"
+            "Syntax: rm <TARGET>\n"
+            "Arguments:\n"
+            "   target: The path to the file/directory to be deleted [REQUIRED]\n"
+        ),
         "upload": (
-            "Uploads the file located at src_fp to destination.\n\n"
-            "Syntax: upload <SRC_PATH> <DESTINATION>\n"
+            "Uploads the file located at src_fp to target.\n\n"
+            "Syntax: upload <SRC_PATH> <TARGET>\n"
             "Arguments:\n"
             "   src: The location (on your computer) of the file to be uploaded [REQUIRED]\n"
-            "   destination: The location (on the server) to upload the file to [REQUIRED]\n"
+            "   target: The location (on the server) to upload the file to [REQUIRED]\n"
         ),
         "download": (
-            "Downloads the file located at src_path to destination_path.\n\n"
-            "Syntax: download <SRC> <DESTINATION>\n"
+            "Downloads the file located at src_path to target_path.\n\n"
+            "Syntax: download <SRC> <TARGET>\n"
             "Arguments:\n"
             "   src: The location (on the server) of the file to be downloaded [REQUIRED]\n"
-            "   destination: The location (on your computer) to download the file to [REQUIRED]"
+            "   target: The location (on your computer) to download the file to [REQUIRED]"
         ),
         "exit": "Ends the shell session",
     }
     main_help = (
         "pywebdav shell\n"
-        "Some commands to interact with the filesystem.\n\n"
+        "Some commands to interact with the filesystem.\n"
+        "Type help <CMD> to get help on a specific command.\n\n"
         "Commands:\n" + " " * 4 + ", ".join(cmd_help_mapping.keys())
     )
 

@@ -48,20 +48,39 @@ class ShellDAVClient:
         """Create a new folder."""
         return self.dav_client.mkcol(form_path(self.cwd, dirname))
 
-    def download(self, src_path: str, destination_fp: Union[str, Path]) -> None:
-        """Downloads a file located at src_path and saved it into destination_fp."""
+    def download(self, src_path: str, target_fp: Union[str, Path]) -> None:
+        """Downloads a file located at src_path and saved it into target_fp."""
         path = form_path(self.cwd, src_path)
         res = self.dav_client.get(path)
         res.raise_for_status()
 
-        with open(destination_fp, "wb") as f:
+        with open(target_fp, "wb") as f:
             f.write(res._orig.read())
 
-    def upload(self, destination_path: str, source_fp: Union[str, Path]) -> None:
-        """Uploads source_fp to destination_path."""
-        path = form_path(self.cwd, destination_path)
+    def upload(self, source_fp: Union[str, Path], target_path: str) -> None:
+        """Uploads source_fp to target_path."""
+        path = form_path(self.cwd, target_path)
         with open(source_fp, "rb") as f:
             res = self.dav_client.put(path, content=f.read())
+        res.raise_for_status()
+
+    def move(self, src_path: str, target_path: str) -> None:
+        """Moves a file from src_path to target_path."""
+        if not src_path.startswith("/"):
+            src_path = self.cwd + src_path
+        res = self.dav_client.move(src_path, target_path)
+        res.raise_for_status()
+
+    def copy(self, src_path: str, target_path: str) -> None:
+        """Copies a file from src_path to target_path."""
+        if not src_path.startswith("/"):
+            src_path = self.cwd + src_path
+        res = self.dav_client.copy(src_path, target_path)
+        res.raise_for_status()
+
+    def delete(self, path: str) -> None:
+        """Deletes a file or folder located at the specified path."""
+        res = self.dav_client.delete(path)
         res.raise_for_status()
 
     def cd(self, dest: str) -> None:

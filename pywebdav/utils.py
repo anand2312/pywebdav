@@ -25,7 +25,7 @@ def form_path(cwd: str, path: str) -> str:
 
     if dest_parts[0] == "..":
         while len(dest_parts) >= 1 and dest_parts[0] == "..":
-            # remove the last part of the cwd, then add in the destination path
+            # remove the last part of the cwd, then add in the target path
             cwd_parts = cwd_parts[:-1]
             dest_parts = dest_parts[1:]
         else:

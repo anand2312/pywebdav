@@ -92,27 +92,27 @@ class AsyncWebDAVClient:
         )
         return DAVResponse(res)
 
-    async def move(self, src_path: str, destination_path: str) -> DAVResponse:
-        """Move a file from src_path to destination_path
+    async def move(self, src_path: str, target_path: str) -> DAVResponse:
+        """Runs a MOVE request.
 
         Args:
             src_path: The location of the file to be moved
-            destination_path: The location to which the file should be moved to
+            target_path: The location to which the file should be moved to
         Returns:
             DAVResponse
         """
-        return await self._move_or_copy("MOVE", src_path, destination_path)
+        return await self._move_or_copy("MOVE", src_path, target_path)
 
-    async def copy(self, src_path: str, destination_path: str) -> DAVResponse:
-        """Copy a file from src_path to destination_path
+    async def copy(self, src_path: str, target_path: str) -> DAVResponse:
+        """Runs a COPY request.
 
         Args:
             src_path: The location of the file to be copied
-            destination_path: The location to which the file should be copied to
+            target_path: The location to which the file should be copied to
         Returns:
             DAVResponse
         """
-        return await self._move_or_copy("COPY", src_path, destination_path)
+        return await self._move_or_copy("COPY", src_path, target_path)
 
     async def propfind(
         self,
@@ -169,7 +169,7 @@ class AsyncWebDAVClient:
             path: The path to send the request to
 
         Note:
-            Any extra kwargs passed to this method are directly passed
+            Any extra keyword arguments passed to this method are passed
             unchanged to [`httpx.request`](https://www.python-httpx.org/api/#helper-functions)
         """
         return await self.request("GET", path, **kwargs)
@@ -182,20 +182,28 @@ class AsyncWebDAVClient:
             content: The content to be sent
 
         Note:
-            Any extra kwargs passed to this method are directly passed
+            Any extra keyword arguments passed to this method are passed
             unchanged to [`httpx.request`](https://www.python-httpx.org/api/#helper-functions)
         """
         return await self.request("PUT", path, content=content, **kwargs)
 
+    async def delete(self, path: str) -> DAVResponse:
+        """Runs a DELETE request.
+
+        Args:
+            path: The path to the file or directory to delete
+        """
+        return await self.request("DELETE", path)
+
     async def _move_or_copy(
-        self, method: Literal["MOVE", "COPY"], src: str, destination: str
+        self, method: Literal["MOVE", "COPY"], src: str, target: str
     ) -> DAVResponse:
         # inspired by https://github.com/owncloud/pyocclient/blob/fe5c11edc92e1dc80d9683c3a16ec929749a5343/owncloud/owncloud.py#L1869
-        if not destination.endswith("/"):
-            destination += Path(src).name
+        if not target.endswith("/"):
+            target += Path(src).name
 
-        if not destination.startswith("/"):
-            destination = "/" + destination
+        if not target.startswith("/"):
+            target = "/" + target
 
-        headers = {"Destination": self.base_url + quote(destination)}
+        headers = {"target": self.base_url + quote(target)}
         return await self.request(method, src, headers=headers)
