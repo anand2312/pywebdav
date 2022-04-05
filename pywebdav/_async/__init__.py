@@ -81,7 +81,7 @@ class AsyncWebDAVClient:
             sending the request.
         """
         req_headers = {**DEFAULT_HEADERS}
-        extra_headers = kwargs.get("headers")
+        extra_headers = kwargs.pop("headers", None)
         if extra_headers is not None:
             req_headers.update(extra_headers)
 

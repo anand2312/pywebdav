@@ -1,54 +1,39 @@
 from __future__ import annotations
-from ctypes import cast
 
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from tempfile import TemporaryFile
 import xml.etree.ElementTree as ET
-from typing import Literal, Optional, TypedDict, Union
+from typing import Union
 
-from httpx import AsyncClient as AsyncClient
-from httpx import Client as _Client
-
-from pywebdav.types import DAVResponse
-
-
-# done to accomodate for unasync code generation
-class SyncClient(_Client):
-    def aclose(self) -> None:
-        super().close()
+from .types import CollectionProperties, FileProperties, DAVResponse, Resource
 
 
 DEFAULT_HEADERS = {"Content-Type": "application/xml"}
 
 
-class CollectionProperties(TypedDict):
-    type: Literal["collection"]
-    last_modified: str
-    etag: str
+def form_path(cwd: str, path: str) -> str:
+    # inspired by
+    # https://github.com/amnong/easywebdav/blob/440c6132bcdd04a5618e6b0a6d0151a1c6cec1ad/easywebdav/client.py#L109
+    cwd_parts = [part for part in cwd.split("/") if part != ""]
+    dest_parts = [part for part in path.strip().split("/") if part != ""]
 
+    if len(dest_parts) == 0:
+        return cwd
 
-class FileProperties(TypedDict):
-    type: Literal["file"]
-    last_modified: str
-    etag: str
-    size: int
-    content_type: str
+    if dest_parts[0] == ".":
+        # ignore single dot if it is present
+        dest_parts = dest_parts[1:]
 
+    if dest_parts[0] == "..":
+        while len(dest_parts) >= 1 and dest_parts[0] == "..":
+            # remove the last part of the cwd, then add in the destination path
+            cwd_parts = cwd_parts[:-1]
+            dest_parts = dest_parts[1:]
+        else:
+            return "/".join(cwd_parts) + "/" + "/".join(dest_parts) + "/"
 
-@dataclass
-class Resource:
-    """Represents a DAV resource"""
-
-    href: str
-    properties: Union[CollectionProperties, FileProperties]
-    status: str
-
-    @property
-    def basename(self) -> str:
-        """Returns the name of the file, excluding the rest of it's path."""
-        return Path(self.href).name
+    if path.startswith("/"):
+        return "/" + "/".join(dest_parts) + "/"
+    else:
+        return cwd + "/".join(dest_parts) + "/"
 
 
 def _get_child_named(elem: ET.Element, name: str, default: str) -> str:
@@ -82,7 +67,7 @@ def _parse_properties(elem: ET.Element) -> Union[CollectionProperties, FilePrope
     return props  # type: ignore
 
 
-def response_to_files(res: DAVResponse) -> list[Resource]:
+def response_to_resources(res: DAVResponse) -> list[Resource]:
     """
     Converts a DAVResponse into a list of Resource objects (if possible). Meant to be used with
     a PROPFIND request.

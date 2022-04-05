@@ -1,7 +1,7 @@
 import asyncio
 
 from pywebdav import AsyncWebDAVClient
-from pywebdav.utils import response_to_files
+from pywebdav.utils import response_to_resources
 
 
 host = "demo.owncloud.com"
@@ -12,9 +12,9 @@ client = AsyncWebDAVClient(host, auth=auth, path=path)
 
 
 async def propfind() -> None:
-    r = await client.request("PROPFIND", "/", headers={"Depth": "1"})
+    r = await client.propfind("/", depth="1")
     print(r)
-    files = response_to_files(r)
+    files = response_to_resources(r)
     print(*files, sep="\n")
 
 

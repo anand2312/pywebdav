@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from enum import Enum
-from typing import Literal, Tuple, Union
+from pathlib import Path
+from typing import Literal, Tuple, TypedDict, Union
 
 from httpx import BasicAuth, DigestAuth, Response
 
@@ -30,6 +32,11 @@ class RequestMethod(str, Enum):
 class DAVException(Exception):
     """Raised when a WebDAV operation fails."""
 
+    def __init__(self, status: int, message: str = "") -> None:
+        super().__init__(
+            f"Status: {status}\n{'Message: ' + message if message else ''}"
+        )
+
 
 class DAVResponse:
     def __init__(self, response: Response) -> None:
@@ -43,7 +50,7 @@ class DAVResponse:
         try:
             self._orig.raise_for_status()
         except Exception as e:
-            raise DAVException()  # TODO: better error displays
+            raise DAVException(self.status_code)  # TODO: better error displays
 
     def xml(self) -> ET.Element:
         """Parses the response XML content."""
@@ -51,3 +58,31 @@ class DAVResponse:
 
     def __repr__(self) -> str:
         return f"<DAVResponse [{self._orig.status_code}]>"
+
+
+class CollectionProperties(TypedDict):
+    type: Literal["collection"]
+    last_modified: str
+    etag: str
+
+
+class FileProperties(TypedDict):
+    type: Literal["file"]
+    last_modified: str
+    etag: str
+    size: int
+    content_type: str
+
+
+@dataclass
+class Resource:
+    """Represents a DAV resource"""
+
+    href: str
+    properties: Union[CollectionProperties, FileProperties]
+    status: str
+
+    @property
+    def basename(self) -> str:
+        """Returns the name of the file, excluding the rest of it's path."""
+        return Path(self.href).name

@@ -3,10 +3,11 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from types import TracebackType
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, List, Literal, Optional
 
-from ..utils import SyncClient, DEFAULT_HEADERS
+from .._unasync_compat import SyncClient
 from ..types import Auth, Cert, DAVResponse, RequestMethodLiteral
+from ..utils import DEFAULT_HEADERS
 
 
 class SyncWebDAVClient:
@@ -80,7 +81,7 @@ class SyncWebDAVClient:
             sending the request.
         """
         req_headers = {**DEFAULT_HEADERS}
-        extra_headers = kwargs.get("headers")
+        extra_headers = kwargs.pop("headers", None)
         if extra_headers is not None:
             req_headers.update(extra_headers)
 

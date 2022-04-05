@@ -1,12 +1,13 @@
 import json
+import shlex
 from http.client import responses
 from pathlib import Path
-from typing import Literal, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import httpx
 from typer import Exit, Option, Typer, echo
 
-from . import SyncWebDAVClient
+from .shell_client import ShellDAVClient
 from .types import RequestMethod
 from .utils import DEFAULT_HEADERS
 
@@ -83,7 +84,7 @@ def request(
     echo(res.text)
 
 
-@app.command(no_args_is_help=True)
+@app.command()
 def shell(
     host: str = Option(..., "-h", help="The host address; example: demo.owncloud.com"),
     port: int = Option(0, help="The port to connect to"),
@@ -100,22 +101,75 @@ def shell(
     ),
 ) -> None:
     """Start a shell session. Run commands like `cd`, `ls` etc on the specified host server, using WebDAV requests."""
-    ...
+    auth = _handle_username_pw(username, password)
+    _shell_main(
+        host=host,
+        port=port,
+        scheme="https" if use_https else "http",
+        auth=auth,
+        path=path,
+    )
+    raise Exit()
 
 
-class ShellDAVClient:
-    """Handles a shell session."""
+def _shell_main(**kwargs: Any) -> None:
+    """REPL for shell commands"""
+    client = ShellDAVClient(**kwargs)
+    cmd_mapping = {"ls": ls_cmd, "cd": cd_cmd, "help": help_cmd}
+    echo(f"pywebdav shell")
+    echo(f"Connecting to {client.dav_client.base_url}")
+    echo("Type 'help' for a list of commands, and 'exit' to leave the shell.")
 
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        *,
-        scheme: Literal["http", "https"],
-        auth: Optional[Tuple[str, str]],
-        path: Optional[str],
-    ) -> None:
-        self.dav_client = SyncWebDAVClient(
-            host, port, scheme=scheme, auth=auth, path=path
-        )
-        self.cwd = "/"
+    while True:
+        line = input(f"{client.cwd}> ")
+        cmd_name, *args = shlex.split(line)
+
+        if cmd_name == "exit":
+            client.dav_client.close()
+            break
+
+        cmd_func = cmd_mapping.get(cmd_name)
+
+        if cmd_func is None:
+            echo(f"Invalid command: {cmd_name}")
+            continue
+
+        cmd_func(client, *args)
+        continue
+
+
+def ls_cmd(client: ShellDAVClient, dest: Optional[str] = None) -> None:
+    path = client.cwd if dest is None else dest
+    resources = client.ls(path)
+    out = "\n".join([res.basename for res in resources])
+    echo(out)
+
+
+def cd_cmd(client: ShellDAVClient, dest: str) -> None:
+    client.cd(dest)
+
+
+def help_cmd(_: ShellDAVClient, cmd: Optional[str] = None) -> None:
+    cmd_help_mapping = {
+        "cd": (
+            "Change directory.\n\n"
+            "Arguments:\n"
+            "   destination: The destination path [REQUIRED]"
+        ),
+        "ls": (
+            "List files and folders.\n\n"
+            "Arguments:\n"
+            "   path: Path to the directory whose files should be listed."
+            " If not passed, lists files in current directory."
+        ),
+        "upload": (""),
+        "download": (""),
+        "exit": "Ends the shell session",
+    }
+    main_help = (
+        "pywebdav shell\n"
+        "Some commands to interact with the filesystem.\n\n"
+        "Commands:\n" + " " * 4 + ", ".join(cmd_help_mapping.keys())
+    )
+
+    echo(cmd_help_mapping.get(cmd, main_help))  # type: ignore
