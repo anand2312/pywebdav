@@ -1,12 +1,27 @@
 # pywebdav
 
 WebDAV client library in Python.
+pywebdav can be used both as a library, and as a CLI.
 
 # Installation
-pywebdav can be installed with pip:
+Requirements: Python >= 3.8
+
+1) Clone/unzip this repository.
+
+2) Create a virtual environment and activate it
 ```
-pip install git+https://github.com/anand2312/pywebdav.git
+python3 -m virtualenv venv
 ```
+```
+source venv/bin/activate # on Linux
+.\venv\Scripts\activate # on Windows
+```
+
+3) Install requirements:
+```
+pip install -r requirements.txt
+```
+(Alternatively, if you use the Poetry package manager, it can do steps 2 and 3 for you with the `poetry install` command._)
 
 # Usage
 ## As a CLI
@@ -29,3 +44,10 @@ for detailed instructions for each command.
 ## As a library
 pywebdav offers both synchronous and asynchronous clients, and some utility functions to parse responses.
 There is a short example in the demo.py file.
+
+# Running Tests
+Tests have been implemented using the `pytest` framework.
+To run the tests, run:
+```
+pytest
+```

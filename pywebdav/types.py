@@ -43,24 +43,27 @@ class DAVException(Exception):
 
 class DAVResponse:
     def __init__(self, response: Response) -> None:
-        self._orig = response
+        self.orig = response
 
     @property
     def status_code(self) -> int:
-        return self._orig.status_code
+        return self.orig.status_code
 
     def raise_for_status(self) -> None:
         try:
-            self._orig.raise_for_status()
+            self.orig.raise_for_status()
         except Exception as e:
             raise DAVException(self.status_code)  # TODO: better error displays
 
+    def read(self) -> bytes:
+        return self.orig.read()
+
     def xml(self) -> ET.Element:
         """Parses the response XML content."""
-        return ET.fromstring(self._orig.content)
+        return ET.fromstring(self.orig.content)
 
     def __repr__(self) -> str:
-        return f"<DAVResponse [{self._orig.status_code}]>"
+        return f"<DAVResponse [{self.orig.status_code}]>"
 
 
 class CollectionProperties(TypedDict):

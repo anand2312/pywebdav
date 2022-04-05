@@ -55,7 +55,7 @@ class ShellDAVClient:
         res.raise_for_status()
 
         with open(target_fp, "wb") as f:
-            f.write(res._orig.read())
+            f.write(res.orig.read())
 
     def upload(self, source_fp: Union[str, Path], target_path: str) -> None:
         """Uploads source_fp to target_path."""
