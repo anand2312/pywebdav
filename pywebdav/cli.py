@@ -167,8 +167,12 @@ def download_cmd(client: ShellDAVClient, src: str, destination: str) -> None:
 
 
 def upload_cmd(client: ShellDAVClient, src: str, destination: str) -> None:
+    fp = Path(src)
+    if not fp.exists():
+        echo(f"File {src} does not exist", err=True)
+        return
     try:
-        client.upload(destination, src)
+        client.upload(destination, fp)
     except DAVException as err:
         echo(
             f"Status: {err.status_code} {responses.get(err.status_code, 'UNKNOWN')}",
