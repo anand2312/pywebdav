@@ -3,10 +3,11 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from types import TracebackType
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, List, Literal, Optional
 
-from ..utils import AsyncClient, DEFAULT_HEADERS
+from .._unasync_compat import AsyncClient
 from ..types import Auth, Cert, DAVResponse, RequestMethodLiteral
+from ..utils import DEFAULT_HEADERS
 
 
 class AsyncWebDAVClient:
