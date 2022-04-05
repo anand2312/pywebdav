@@ -1,4 +1,5 @@
 import asyncio
+from logging import getLogger, basicConfig, DEBUG
 
 from pywebdav import AsyncWebDAVClient
 from pywebdav.utils import response_to_resources
@@ -13,7 +14,6 @@ client = AsyncWebDAVClient(host, auth=auth, path=path)
 
 async def propfind() -> None:
     r = await client.propfind("/", depth="1")
-    print(r)
     files = response_to_resources(r)
     print(*files, sep="\n")
 

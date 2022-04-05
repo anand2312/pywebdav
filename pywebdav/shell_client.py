@@ -68,6 +68,7 @@ class ShellDAVClient:
         """Moves a file from src_path to target_path."""
         if not src_path.startswith("/"):
             src_path = self.cwd + src_path
+        target_path = form_path(self.cwd, target_path)
         res = self.dav_client.move(src_path, target_path)
         res.raise_for_status()
 
@@ -75,6 +76,7 @@ class ShellDAVClient:
         """Copies a file from src_path to target_path."""
         if not src_path.startswith("/"):
             src_path = self.cwd + src_path
+        target_path = form_path(self.cwd, target_path)
         res = self.dav_client.copy(src_path, target_path)
         res.raise_for_status()
 

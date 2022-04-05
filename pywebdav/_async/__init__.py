@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
+from logging import getLogger
 from pathlib import Path
 from types import TracebackType
 from typing import Any, List, Literal, Optional
@@ -10,6 +11,9 @@ from urllib.parse import quote
 from .._unasync_compat import AsyncClient
 from ..types import Auth, Cert, DAVResponse, RequestMethodLiteral
 from ..utils import DEFAULT_HEADERS
+
+
+logger = getLogger(__name__)
 
 
 class AsyncWebDAVClient:
@@ -90,6 +94,7 @@ class AsyncWebDAVClient:
         res = await self._client.request(
             method, quote(path), headers=req_headers, **kwargs
         )
+        logger.debug("Headers: %s", str(req_headers))
         return DAVResponse(res)
 
     async def move(self, src_path: str, target_path: str) -> DAVResponse:
@@ -199,11 +204,7 @@ class AsyncWebDAVClient:
         self, method: Literal["MOVE", "COPY"], src: str, target: str
     ) -> DAVResponse:
         # inspired by https://github.com/owncloud/pyocclient/blob/fe5c11edc92e1dc80d9683c3a16ec929749a5343/owncloud/owncloud.py#L1869
-        if not target.endswith("/"):
+        if Path(target).suffix == "":  # no file extension at end of path i.e directory
             target += Path(src).name
-
-        if not target.startswith("/"):
-            target = "/" + target
-
-        headers = {"target": self.base_url + quote(target)}
+        headers = {"Destination": self.base_url + quote(target)}
         return await self.request(method, src, headers=headers)

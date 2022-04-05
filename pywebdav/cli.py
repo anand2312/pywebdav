@@ -1,4 +1,5 @@
 import json
+import logging
 import shlex
 from http.client import responses
 from pathlib import Path
@@ -99,8 +100,11 @@ def shell(
         str,
         help="Any additional path which should be considered as part of the base URL",
     ),
+    debug: bool = Option(False, help="Whether to log debug statements"),
 ) -> None:
     """Start a shell session. Run commands like `cd`, `ls` etc on the specified host server, using WebDAV requests."""
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
     auth = _handle_username_pw(username, password)
     _shell_main(
         host=host,
@@ -118,6 +122,7 @@ def _shell_main(**kwargs: Any) -> None:
     cmd_mapping = {
         "ls": ls_cmd,
         "cd": cd_cmd,
+        "mkdir": mkdir_cmd,
         "move": move_cmd,
         "copy": copy_cmd,
         "rm": delete_cmd,
@@ -159,6 +164,11 @@ def ls_cmd(client: ShellDAVClient, path: Optional[str] = None) -> None:
     resources = client.ls(path)
     out = "\n".join([res.basename for res in resources])
     echo(out)
+
+
+def mkdir_cmd(client: ShellDAVClient, dirname: str) -> None:
+    client.mkdir(dirname)
+    echo(f"Created directory {dirname}")
 
 
 def download_cmd(client: ShellDAVClient, src: str, target: str) -> None:
@@ -208,6 +218,12 @@ def help_cmd(_: ShellDAVClient, cmd: Optional[str] = None) -> None:
             "Arguments:\n"
             "   path: Path to the directory whose files should be listed."
             " If not passed, lists files in current directory."
+        ),
+        "mkdir": (
+            "Create a new directory\n\n"
+            "Syntax: mkdir <DIRNAME>\n"
+            "Arguments:\n"
+            "   dirname: Name of the directory to be created. [REQUIRED]\n"
         ),
         "copy": (
             "Copies the file located at src_path to target.\n\n"
