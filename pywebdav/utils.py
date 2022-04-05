@@ -3,6 +3,7 @@ from ctypes import cast
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from tempfile import TemporaryFile
 import xml.etree.ElementTree as ET
 from typing import Literal, Optional, TypedDict, Union
@@ -43,6 +44,11 @@ class Resource:
     href: str
     properties: Union[CollectionProperties, FileProperties]
     status: str
+
+    @property
+    def basename(self) -> str:
+        """Returns the name of the file, excluding the rest of it's path."""
+        return Path(self.href).name
 
 
 def _get_child_named(elem: ET.Element, name: str, default: str) -> str:

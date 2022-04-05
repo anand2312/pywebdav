@@ -1,20 +1,16 @@
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from types import TracebackType
 
-
-from typing import Any, Literal, Optional, Union
-
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from ..utils import SyncClient, DEFAULT_HEADERS
-
-from ..types import Auth, Cert, DAVResponse, RequestMethod, RequestMethodLiteral
+from ..types import Auth, Cert, DAVResponse, RequestMethodLiteral
 
 
 class SyncWebDAVClient:
-
     base_url: str
-
     _client: SyncClient
 
     def __init__(
@@ -27,105 +23,135 @@ class SyncWebDAVClient:
         cert: Optional[Cert] = None,
         path: Optional[str] = None,
     ) -> None:
-
         """
-
         Initializes the WebDAV Client.
 
-
-
         Args:
-
             host: The server host
-
             port: The server port
-
             scheme: HTTP/HTTPS
-
             auth: Basic auth with a tuple of (username, password), or an instance of
-
                   [httpx.DigestAuth](https://www.python-httpx.org/quickstart/#authentication) for digest authentication.
-
             cert: Path to a certicate file, or a tuple of (cert, key)
-
             path: Any additional path which should be considered as part of the base URL.
-
         """
-
         if not port:
-
             port = 80 if scheme == "http" else 443
-
         self.base_url = f"{scheme}://{host}:{port}"
 
         if path:
-
             self.base_url += f"/{path}"
 
         args = {"auth": auth, "base_url": self.base_url}
 
         if cert is not None:
-
             args["cert"] = cert
 
         self._client = SyncClient(**args)
 
     def close(self) -> None:
-
         """Closes the underlying HTTP transports and proxies."""
-
         self._client.aclose()
 
     def __enter__(self) -> SyncWebDAVClient:
-
         return self
 
     def __exit__(
         self, exc_type: type[BaseException], exc_value: BaseException, tb: TracebackType
     ) -> None:
-
         self.close()
 
     def request(
         self,
-        method: Union[RequestMethod, RequestMethodLiteral],
+        method: RequestMethodLiteral,
         path: str,
-        headers: Optional[dict[str, str]] = None,
         **kwargs: Any,
     ) -> DAVResponse:
+        """Run an arbitrary DAV request.
 
+        Args:
+            method: The request method to be used
+            path: The path to send the request to
+
+        Note:
+            1) Any extra kwargs passed to this method are directly passed
+            unchanged to [`httpx.request`](https://www.python-httpx.org/api/#helper-functions)
+            2) If a headers kwarg is passed, it will be merged with the default headers before
+            sending the request.
+        """
         req_headers = {**DEFAULT_HEADERS}
+        extra_headers = kwargs.get("headers")
+        if extra_headers is not None:
+            req_headers.update(extra_headers)
 
-        if headers is not None:
-
-            req_headers.update(headers)
-
-        if isinstance(method, RequestMethod):
-
-            # allows passing values of the RequestMethod enum
-
-            # this enum is used in the CLI as typer has support for enums
-
-            req_method = method.value
-
-        else:
-
-            req_method = method
-
-        res = self._client.request(req_method, path, headers=req_headers, **kwargs)
-
+        res = self._client.request(method, path, headers=req_headers, **kwargs)
         return DAVResponse(res)
 
     def propfind(
-        self, path: str, *, body: str, depth: Literal["0", "1", "infinity"] = "1"
+        self,
+        path: str,
+        *,
+        depth: Literal["0", "1", "infinity"] = "1",
+        properties: Optional[List[str]] = None,
     ) -> DAVResponse:
+        """Runs a PROPFIND request.
 
-        return self.request("PROPFIND", path, headers={"Depth": depth}, content=body)
+        Args:
+            path: The path to send the request to
+            depth: Depth of the listing
+            properties: List of properties to request.
+        """
+        if not path.endswith("/"):
+            path += "/"
+
+        if properties:
+            root = ET.Element(
+                "d:propfind",
+                {
+                    "xmlns:d": "DAV:",
+                    "xmlns:oc": "http://owncloud.org/ns",
+                },
+            )
+            prop = ET.SubElement(root, "d:prop")
+            for i in properties:
+                ET.SubElement(prop, i)
+            content = ET.tostring(root)
+        else:
+            content = None
+
+        return self.request("PROPFIND", path, headers={"Depth": depth}, content=content)
+
+    def mkcol(self, path: str) -> DAVResponse:
+        """Runs an MKCOL request.
+
+        Args:
+            path: The path to send the request to
+        """
+        if not path.endswith("/"):
+            path += "/"
+        return self.request("MKCOL", path)
 
     def get(self, path: str, **kwargs: Any) -> DAVResponse:
+        """Runs a GET request.
 
+        Args:
+            path: The path to send the request to
+
+        Note:
+            Any extra kwargs passed to this method are directly passed
+            unchanged to [`httpx.request`](https://www.python-httpx.org/api/#helper-functions)
+        """
         return self.request("GET", path, **kwargs)
 
-    def put(self, path: str, **kwargs: Any) -> DAVResponse:
+    def put(self, path: str, *, content: bytes, **kwargs: Any) -> DAVResponse:
+        """Runs a PUT request.
 
-        return self.request("PUT", path, **kwargs)
+        Args:
+            path: The path to send the request to
+            content: The content to be sent
+
+        Note:
+            Any extra kwargs passed to this method are directly passed
+            unchanged to [`httpx.request`](https://www.python-httpx.org/api/#helper-functions)
+        """
+        return self.request("PUT", path, content=content, **kwargs)
