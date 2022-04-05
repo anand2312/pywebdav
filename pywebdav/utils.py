@@ -10,6 +10,7 @@ DEFAULT_HEADERS = {"Content-Type": "application/xml"}
 
 
 def form_path(cwd: str, path: str) -> str:
+    """Compute the final path from the given cwd and target path."""
     # inspired by
     # https://github.com/amnong/easywebdav/blob/440c6132bcdd04a5618e6b0a6d0151a1c6cec1ad/easywebdav/client.py#L109
     cwd_parts = [part for part in cwd.split("/") if part != ""]
@@ -34,6 +35,27 @@ def form_path(cwd: str, path: str) -> str:
         return "/" + "/".join(dest_parts) + "/"
     else:
         return cwd + "/".join(dest_parts) + "/"
+
+
+def response_to_resources(res: DAVResponse) -> list[Resource]:
+    """
+    Converts a DAVResponse into a list of Resource objects (if possible). Meant to be used with
+    a PROPFIND request.
+    """
+    resources: list[Resource] = []
+    for child in res.xml().findall("{DAV:}response"):
+        href = _get_child_named(child, "href", "")
+        if href is None:  # will not happen; is here to appease type-checker
+            href = ""
+        props_elem = child.findall("{DAV:}propstat/{DAV:}prop")[0]
+        if props_elem is None:
+            props = {}
+        else:
+            props = _parse_properties(props_elem)
+
+        status = _get_child_named(child, "status", "")
+        resources.append(Resource(href=href, properties=props, status=status))  # type: ignore
+    return resources
 
 
 def _get_child_named(elem: ET.Element, name: str, default: str) -> str:
@@ -65,24 +87,3 @@ def _parse_properties(elem: ET.Element) -> Union[CollectionProperties, FilePrope
         props["content_type"] = _get_child_named(elem, "getcontenttype", "")
     # TODO: implement this with type safety
     return props  # type: ignore
-
-
-def response_to_resources(res: DAVResponse) -> list[Resource]:
-    """
-    Converts a DAVResponse into a list of Resource objects (if possible). Meant to be used with
-    a PROPFIND request.
-    """
-    resources: list[Resource] = []
-    for child in res.xml().findall("{DAV:}response"):
-        href = _get_child_named(child, "href", "")
-        if href is None:  # will not happen; is here to appease type-checker
-            href = ""
-        props_elem = child.findall("{DAV:}propstat/{DAV:}prop")[0]
-        if props_elem is None:
-            props = {}
-        else:
-            props = _parse_properties(props_elem)
-
-        status = _get_child_named(child, "status", "")
-        resources.append(Resource(href=href, properties=props, status=status))  # type: ignore
-    return resources

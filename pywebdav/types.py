@@ -14,7 +14,7 @@ Auth = Union[
 ]  # (email, pw) | BasicAuth | DigestAuth
 Cert = Union[str, Tuple[str, str]]  # path-to-cert.pem | ('cert', 'key')
 RequestMethodLiteral = Literal[
-    "PROPFIND", "GET", "PUT", "DELETE", "MKCOL", "HEAD", "POST"
+    "PROPFIND", "GET", "PUT", "DELETE", "MKCOL", "HEAD", "POST", "MOVE", "COPY"
 ]
 # there are more methods, we'll see how many we can implement in time
 
@@ -27,6 +27,8 @@ class RequestMethod(str, Enum):
     MKDCOL = "MKCOL"
     HEAD = "HEAD"
     POST = "POST"
+    MOVE = "MOVE"
+    COPY = "COPY"
 
 
 class DAVException(Exception):
