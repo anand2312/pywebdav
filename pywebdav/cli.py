@@ -87,7 +87,9 @@ def request(
 
 @app.command()
 def shell(
-    host: str = Option(..., "-h", help="The host address; example: demo.owncloud.com"),
+    host: str = Option(
+        ..., "-h", "--host", help="The host address; example: demo.owncloud.com"
+    ),
     port: int = Option(0, help="The port to connect to"),
     use_https: bool = True,
     username: Optional[str] = Option(

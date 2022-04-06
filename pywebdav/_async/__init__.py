@@ -94,7 +94,7 @@ class AsyncWebDAVClient:
         res = await self._client.request(
             method, quote(path), headers=req_headers, **kwargs
         )
-        logger.debug("Headers: %s", str(req_headers))
+        logger.debug("Headers: %s\n", str(req_headers))
         return DAVResponse(res)
 
     async def move(self, src_path: str, target_path: str) -> DAVResponse:
