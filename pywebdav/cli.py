@@ -158,6 +158,12 @@ def _shell_main(**kwargs: Any) -> None:
                 f"[ERROR] Status: {err.status_code} {responses.get(err.status_code, 'UNKNOWN')}",
                 err=True,
             )
+        except httpx.ConnectError:
+            echo(
+                f"[ERROR] Could not connect to {client.dav_client.base_url}; check the details you have passed in and try again.",
+                err=True,
+            )
+            break
         continue
 
 

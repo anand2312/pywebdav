@@ -46,7 +46,7 @@ python -m pywebdav shell --help
 ```
 for detailed instructions for each command.
 
-Examples: The following commands will make requests to demo.owncloud.com
+Examples: The following commands will make requests to demo.owncloud.com \
 Note that the server gets reset every hour, so you may encounter some 404s if you use these commands at that time.
 ```
 python -m pywebdav shell --host demo.owncloud.com -u demo -pw demo --path remote.php/dav/files/demo
