@@ -103,6 +103,6 @@ Similar to the client code, the tests for the synchronous client is also automat
 wrote for the asynchronous client. They lie in the `tests/_sync` and `tests/_async` directories respectively.
 
 ## NOTES
-1) Some parts of this code has been inspired by:
+1) Some parts of this code has been inspired by: \
 https://github.com/amnong/easywebdav \
-https://github.com/owncloud/pyocclient \
+https://github.com/owncloud/pyocclient
