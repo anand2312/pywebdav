@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple
 
 from . import SyncWebDAVClient
 from .types import DAVResponse, Resource
@@ -48,17 +48,27 @@ class ShellDAVClient:
         """Create a new folder."""
         return self.dav_client.mkcol(form_path(self.cwd, dirname))
 
-    def download(self, src_path: str, target_fp: Union[str, Path]) -> None:
+    def download(self, src_path: str, target_fp: Path) -> None:
         """Downloads a file located at src_path and saved it into target_fp."""
         path = form_path(self.cwd, src_path)
         res = self.dav_client.get(path)
         res.raise_for_status()
 
+        if target_fp.suffix == "":  # no filename provided
+            # use source file name
+            target_fp /= Path(src_path).name
+
         with open(target_fp, "wb") as f:
             f.write(res.orig.read())
 
-    def upload(self, source_fp: Union[str, Path], target_path: str) -> None:
+    def upload(self, source_fp: Path, target_path: str) -> None:
         """Uploads source_fp to target_path."""
+        if Path(target_path).suffix == "":  # no filename provided
+            # use source file name
+            if target_path == ".":
+                target_path = source_fp.name
+            else:
+                target_path += source_fp.name
         path = form_path(self.cwd, target_path)
         with open(source_fp, "rb") as f:
             res = self.dav_client.put(path, content=f.read())
@@ -82,6 +92,7 @@ class ShellDAVClient:
 
     def delete(self, path: str) -> None:
         """Deletes a file or folder located at the specified path."""
+        path = form_path(self.cwd, path)
         res = self.dav_client.delete(path)
         res.raise_for_status()
 
