@@ -14,5 +14,6 @@ jobs:
         run: |
           git config --global user.name 'anand2312'
           git config --global user.email '40204976+anand2312@users.noreply.github.com'
-          git commit -am "Create tar to be submitted"
+          git add submission.tar
+          git commit -m "Create tar to be submitted"
           git push
