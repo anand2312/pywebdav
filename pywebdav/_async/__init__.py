@@ -97,28 +97,6 @@ class AsyncWebDAVClient:
         logger.debug("Headers: %s\n", str(req_headers))
         return DAVResponse(res)
 
-    async def move(self, src_path: str, target_path: str) -> DAVResponse:
-        """Runs a MOVE request.
-
-        Args:
-            src_path: The location of the file to be moved
-            target_path: The location to which the file should be moved to
-        Returns:
-            DAVResponse
-        """
-        return await self._move_or_copy("MOVE", src_path, target_path)
-
-    async def copy(self, src_path: str, target_path: str) -> DAVResponse:
-        """Runs a COPY request.
-
-        Args:
-            src_path: The location of the file to be copied
-            target_path: The location to which the file should be copied to
-        Returns:
-            DAVResponse
-        """
-        return await self._move_or_copy("COPY", src_path, target_path)
-
     async def propfind(
         self,
         path: str,
@@ -157,16 +135,6 @@ class AsyncWebDAVClient:
             "PROPFIND", path, headers={"Depth": depth}, content=content
         )
 
-    async def mkcol(self, path: str) -> DAVResponse:
-        """Runs an MKCOL request.
-
-        Args:
-            path: The path to send the request to
-        """
-        if not path.endswith("/"):
-            path += "/"
-        return await self.request("MKCOL", path)
-
     async def get(self, path: str, **kwargs: Any) -> DAVResponse:
         """Runs a GET request.
 
@@ -187,10 +155,44 @@ class AsyncWebDAVClient:
             content: The content to be sent
 
         Note:
-            Any extra keyword arguments passed to this method are passed
+            1) Any extra keyword arguments passed to this method are passed
             unchanged to [`httpx.request`](https://www.python-httpx.org/api/#helper-functions)
+            2) Trying to create a file, whose intermediate directories haven't been made will result
+            in an error. (eg: trying to create /a/b/c.txt when /a/b doesn't exist)
         """
         return await self.request("PUT", path, content=content, **kwargs)
+
+    async def move(self, src_path: str, target_path: str) -> DAVResponse:
+        """Runs a MOVE request.
+
+        Args:
+            src_path: The location of the file to be moved
+            target_path: The location to which the file should be moved to
+        Returns:
+            DAVResponse
+        """
+        return await self._move_or_copy("MOVE", src_path, target_path)
+
+    async def copy(self, src_path: str, target_path: str) -> DAVResponse:
+        """Runs a COPY request.
+
+        Args:
+            src_path: The location of the file to be copied
+            target_path: The location to which the file should be copied to
+        Returns:
+            DAVResponse
+        """
+        return await self._move_or_copy("COPY", src_path, target_path)
+
+    async def mkcol(self, path: str) -> DAVResponse:
+        """Runs an MKCOL request.
+
+        Args:
+            path: The path to send the request to
+        """
+        if not path.endswith("/"):
+            path += "/"
+        return await self.request("MKCOL", path)
 
     async def delete(self, path: str) -> DAVResponse:
         """Runs a DELETE request.
