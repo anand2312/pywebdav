@@ -20,6 +20,7 @@ source venv/bin/activate # on Linux
 2) Install requirements:
 ```
 pip install -r requirements.txt
+pip install -e .  # install pywebdav locally
 ```
 Alternatively, if you use the Poetry package manager you can use:
 ```
