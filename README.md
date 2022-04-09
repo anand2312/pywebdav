@@ -68,7 +68,7 @@ There is a short example in the demo.py file.
 Tests have been implemented using the `pytest` framework.
 To run the tests, run:
 ```
-pytest
+pytest -rxXs
 ```
 
 # Navigating source code
