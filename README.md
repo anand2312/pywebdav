@@ -47,13 +47,17 @@ python -m pywebdav shell --help
 for detailed instructions for each command.
 
 Examples: The following commands will make requests to demo.owncloud.com \
-Note that the server gets reset every hour, so you may encounter some 404s if you use these commands at that time.
 ```
 python -m pywebdav shell --host demo.owncloud.com -u demo -pw demo --path remote.php/dav/files/demo
 ```
 ```
 python -m pywebdav request PROPFIND https://demo.owncloud.com/remote.php/dav/files/demo -u demo -pw demo
 ```
+
+**Note**: pass the `--debug` flag to the CLI commands to view more info on the requests being made. \
+**Note**: the shell does not care if you `cd` into a directory that doesn't exist; it'll raise errors when you try running some commands in a directory that doesn't exist. You can use the `mkdir` command to create a new directory, and then run
+commands in it. \
+**Note**: the server gets reset every hour, so you may encounter some 404s if you use these commands at that time.
 
 ## As a library
 pywebdav offers both synchronous and asynchronous clients, and some utility functions to parse responses.

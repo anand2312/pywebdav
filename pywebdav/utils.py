@@ -32,12 +32,19 @@ def form_path(cwd: str, path: str) -> str:
             cwd_parts = cwd_parts[:-1]
             dest_parts = dest_parts[1:]
         else:
-            return "/".join(cwd_parts) + "/" + "/".join(dest_parts) + "/"
-
-    if path.startswith("/"):
-        return "/" + "/".join(dest_parts) + "/"
+            result = "/".join(cwd_parts) + "/" + "/".join(dest_parts) + "/"
     else:
-        return cwd + "/".join(dest_parts) + "/"
+        if path.startswith("/"):
+            result = "/" + "/".join(dest_parts) + "/"
+        else:
+            result = cwd + "/".join(dest_parts) + "/"
+
+    if result.strip("/") == "":
+        # the end result was just a sequence of backslashes
+        # in which case, just return a single backslash i.e root dir
+        return "/"
+    else:
+        return result
 
 
 def response_to_resources(res: DAVResponse) -> list[Resource]:
@@ -48,8 +55,7 @@ def response_to_resources(res: DAVResponse) -> list[Resource]:
     resources: list[Resource] = []
     for child in res.xml().findall("{DAV:}response"):
         href = _get_child_named(child, "href", "")
-        if href is None:  # will not happen; is here to appease type-checker
-            href = ""
+        href = href or ""  # will not happen, here for type checking
         props_elem = child.findall("{DAV:}propstat/{DAV:}prop")[0]
         if props_elem is None:
             props = {}
