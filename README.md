@@ -55,10 +55,10 @@ python -m pywebdav shell --host demo.owncloud.com -u demo -pw demo --path remote
 python -m pywebdav request PROPFIND https://demo.owncloud.com/remote.php/dav/files/demo -u demo -pw demo
 ```
 
-**Note**: pass the `--debug` flag to the CLI commands to view more info on the requests being made. \
-**Note**: the shell does not care if you `cd` into a directory that doesn't exist; it'll raise errors when you try running some commands in a directory that doesn't exist. You can use the `mkdir` command to create a new directory, and then run
+**Note**: 1) Pass the `--debug` flag to the CLI commands to view more info on the requests being made. \
+2) The shell does not care if you `cd` into a directory that doesn't exist; it'll raise errors when you try running some commands in a directory that doesn't exist. You can use the `mkdir` command to create a new directory, and then run
 commands in it. \
-**Note**: the server gets reset every hour, so you may encounter some 404s if you use these commands at that time.
+3) The server gets reset every hour, so you may encounter some 404s if you use these commands at that time.
 
 ## As a library
 pywebdav offers both synchronous and asynchronous clients, and some utility functions to parse responses.
@@ -88,8 +88,7 @@ pywebdav
  ┗ __main__.py
 ```
 1) The synchronous client is automatically generated from the async client code that I write. The AsyncWebDAVClient
-is in the `_async/__init__.py` file, and the generated client is in the `_sync/__init__.py` file. (The async source code
-might be easier to read, as the generated synchronous client source code is poorly formatted).
+is in the `_async/__init__.py` file, and the generated client is in the `_sync/__init__.py` file.
 The Client classes offer a general `request` method to run any sort of request, and some helper functions to run other requests:
     - propfind
     - get
